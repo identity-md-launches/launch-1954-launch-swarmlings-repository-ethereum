@@ -7,9 +7,20 @@ downloads, no install step. Vendored source is unmodified; only the parts this p
 | --- | --- | --- | --- |
 | Uniswap v4-core | 1.0.2, `46c6834698c48bc4a463a86d8420f4eb1d7f3b75` | `src/`, `test/utils/`, `package.json`, `licenses/` | BUSL-1.1 core / MIT (see `lib/v4-core/licenses`) |
 | Solmate (bundled with v4-core) | `4b47a19038b798b4a33d9749d25e570443520647` | `src/`, `LICENSE` | AGPL-3.0 (tests only: MockERC20) |
-| DN404 (Vectorized) | v0.0.25, `3397cb11558ac853912ee87871422b6a29c9d346` | `src/`, `LICENSE.txt`, `package.json` | MIT |
+| DN404 (Vectorized) | v0.0.25, `3397cb11558ac853912ee87871422b6a29c9d346`, with two storage-layout edits in `src/DN404.sol` (see below) | `src/`, `LICENSE.txt`, `package.json` | MIT |
 | forge-std | v1.17.0, `f3dae6e6ee381f25eb6a246f7da9b85c91a68219` | `src/`, licenses, `package.json` | MIT / Apache-2.0 |
 | Solady (renderer only) | 0.1.26 | `LibString`, `Base64`, `DynamicBufferLib`, `LibBytes` | MIT |
 
 The deployed contracts use v4-core interfaces and libraries, DN404 and (renderer) Solady. Solmate and
 forge-std are test-only. This project's own Solidity is MIT-licensed.
+
+## Local edits to DN404
+
+`lib/dn404/src/DN404.sol` differs from upstream in field order only, so tools that write ERC-20 storage
+directly (forge-std `deal`, used by IMD's launch verifier) can set LING balances and supply:
+
+- `AddressData.balance` is the first field (the slot's low 96 bits) instead of the last.
+- `DN404Storage.totalSupply` is a `uint256` in a slot of its own instead of a `uint96` packed with the NFT
+  counters. Every write still casts to `uint96` and checks `_totalSupplyOverflows`.
+
+Both structs are only accessed through Solidity fields; no assembly reads them by offset.

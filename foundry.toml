@@ -11,6 +11,8 @@ via_ir = false
 bytecode_hash = "none"
 cbor_metadata = false
 ffi = false
+# test/Manifest.t.sol reads launch.json to keep it in agreement with the source
+fs_permissions = [{ access = "read", path = "./launch.json" }]
 
 [invariant]
 runs = 128

@@ -46,6 +46,16 @@
 
 ## Design choices worth reviewing
 
+- **The launch factory.** The hook records its deployer as `launcher`. That is IMD's launch factory, which owns
+  the locked launch position and collects its LP fee with zero-liquidity `modifyLiquidity` calls; the JIT
+  penalty never applies to it, so the payer's and the network's fee arrive whole.
+- **Storage layout of the vendored DN404.** Two fields moved so tooling that writes ERC-20 storage directly
+  (forge-std `deal`, used by IMD's launch verifier) works: the balance is the first field of `AddressData`
+  (the slot's low bits) and `totalSupply` has a slot of its own. Only Solidity field access touches these, so
+  behaviour is unchanged; the full suite runs on the new layout.
+- **Pairing.** On Ethereum mainnet the reward currency is IMD and the hook binds only a LING / IMD pool;
+  `test/Manifest.t.sol` fails if `launch.json` pairs LING with anything else.
+
 - **EIP-7702 wallets.** DN404 treats any code-bearing account as a contract that skips NFTs. A delegated EOA has
   exactly 23 bytes of code starting with `0xef0100`, a prefix EIP-3541 forbids for deployed contracts, so the
   token treats such accounts as wallets. A wallet's explicit `setSkipNFT` still wins.

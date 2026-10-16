@@ -78,6 +78,10 @@ contract SwarmlingsHook is IHooks, IUnlockCallback, ISwarmlingsHook {
     uint256 internal immutable lingId;
     /// @notice Smallest pending holder amount that is handed over.
     uint256 public immutable minDistribute;
+    /// @notice Whoever deployed the hook: IMD's launch factory, which owns the locked launch liquidity and
+    /// collects its LP fee with zero-liquidity calls. Its positions are never charged the JIT penalty, so the
+    /// payer's and the network's fee always arrive whole.
+    address public immutable launcher;
 
     PoolId public launchPool;
     bool public launchPoolSet;
@@ -156,6 +160,7 @@ contract SwarmlingsHook is IHooks, IUnlockCallback, ISwarmlingsHook {
         rewardId = reward.toId();
         lingId = Currency.wrap(token).toId();
         minDistribute = r == address(0) ? MIN_DISTRIBUTE_NATIVE : MIN_DISTRIBUTE_IMD;
+        launcher = msg.sender;
         council = COUNCIL;
         Hooks.validateHookPermissions(IHooks(address(this)), getHookPermissions());
     }
@@ -453,6 +458,7 @@ contract SwarmlingsHook is IHooks, IUnlockCallback, ISwarmlingsHook {
         ModifyLiquidityParams calldata params,
         BalanceDelta feesAccrued
     ) private returns (BalanceDelta) {
+        if (owner == launcher) return BalanceDeltaLibrary.ZERO_DELTA;
         uint64 added = lastAdded[_positionKey(key, owner, params)];
         if (added == 0 || block.number - added >= JIT_BLOCKS) return BalanceDeltaLibrary.ZERO_DELTA;
         int128 fee = rewardIsCurrency0 ? feesAccrued.amount0() : feesAccrued.amount1();

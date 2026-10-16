@@ -141,16 +141,18 @@ abstract contract DN404 {
 
     /// @dev Struct containing an address's token data and settings.
     struct AddressData {
-        // Auxiliary data.
-        uint88 aux;
-        // Flags for `initialized` and `skipNFT`.
-        uint8 flags;
-        // The alias for the address. Zero means absence of an alias.
-        uint32 addressAlias;
+        // The token balance in wei. Swarmlings: first, so it sits in the slot's low bits and tooling that writes
+        // an ERC-20 balance slot directly (forge-std `deal`) finds it. Only Solidity field access touches this
+        // struct, so the order is free.
+        uint96 balance;
         // The number of NFT tokens.
         uint32 ownedLength;
-        // The token balance in wei.
-        uint96 balance;
+        // The alias for the address. Zero means absence of an alias.
+        uint32 addressAlias;
+        // Flags for `initialized` and `skipNFT`.
+        uint8 flags;
+        // Auxiliary data.
+        uint88 aux;
     }
 
     /// @dev A uint32 map in storage.
@@ -185,8 +187,10 @@ abstract contract DN404 {
         uint32 burnedPoolTail;
         // Total number of NFTs in existence.
         uint32 totalNFTSupply;
-        // Total supply of tokens.
-        uint96 totalSupply;
+        // Total supply of tokens. Swarmlings: a full slot of its own, so tooling that writes the supply slot
+        // directly (forge-std `deal` with adjust) finds it; every write still goes through a uint96 cast and
+        // `_totalSupplyOverflows`, so the bound is unchanged.
+        uint256 totalSupply;
         // Address of the NFT mirror contract.
         address mirrorERC721;
         // Mapping of a user alias number to their address.
